@@ -68,8 +68,8 @@ class ReportControllerTest {
     @Test
     void branchFilterNarrowsRows() {
         controller.monthEntered("2026-09");
-        controller.branchChosen("PNH");
-        assertEquals("PNH", model.branch());
+        controller.branchChosen("rep");
+        assertEquals("REP", model.branch());
         assertEquals(1, model.visibleTransactions().size());
     }
 }

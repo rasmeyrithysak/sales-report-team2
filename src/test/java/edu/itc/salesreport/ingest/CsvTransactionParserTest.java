@@ -1,20 +1,12 @@
 package edu.itc.salesreport.ingest;
 
-import edu.itc.salesreport.TestData;
-import edu.itc.salesreport.engine.DefaultSalesAggregator;
-import edu.itc.salesreport.ingest.CsvMonthReader;
-import edu.itc.salesreport.ingest.TransactionParser;
-import org.junit.jupiter.api.BeforeEach;
+import edu.itc.salesreport.model.PaymentMethod;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,7 +17,7 @@ class CsvTransactionParserTest {
     @Test
     void parsesValidRowSuccessfully() throws InvalidRowException {
         String line = "PNH,2026-09-01,PNH-000001,SKU-1001,Jasmine Rice 5kg,Grocery,2,6.50,0.00,KHQR";
-        var tx = parser.parse("PNH-2026-09-01.csv", 2, line);
+        var tx = parser.parse(line);
         
         assertEquals("PNH", tx.branch());
         assertEquals(LocalDate.parse("2026-09-01"), tx.date());
@@ -46,7 +38,7 @@ class CsvTransactionParserTest {
     })
     void rejectsInvalidRows(String invalidLine) {
         assertThrows(InvalidRowException.class, () -> 
-            parser.parse("test.csv", 1, invalidLine)
+            parser.parse(invalidLine)
         );
     }
 }

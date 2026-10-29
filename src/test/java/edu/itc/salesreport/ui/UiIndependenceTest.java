@@ -1,4 +1,4 @@
-package edu.itc.salesreport;
+package edu.itc.salesreport.ui;
 
 import org.junit.jupiter.api.Test;
 import java.io.IOException;

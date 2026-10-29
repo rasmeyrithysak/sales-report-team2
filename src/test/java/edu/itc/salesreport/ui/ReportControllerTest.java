@@ -3,6 +3,7 @@ package edu.itc.salesreport.ui;
 import edu.itc.salesreport.TestData;
 import edu.itc.salesreport.engine.DefaultSalesAggregator;
 import edu.itc.salesreport.ingest.CsvMonthReader;
+import edu.itc.salesreport.ingest.CsvTransactionParser;
 import edu.itc.salesreport.ingest.TransactionParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class ReportControllerTest {
     @BeforeEach
     void setUp() throws IOException {
         TestData.writeSample(dataDir);
-        model = new SalesModel(new CsvMonthReader(new TransactionParser()), new DefaultSalesAggregator());
+        model = new SalesModel(new CsvMonthReader(new CsvTransactionParser()), new DefaultSalesAggregator());
         model.addListener(events::add);
         
         Clock fixedClock = Clock.fixed(Instant.parse("2026-09-27T03:00:00Z"), ZoneId.of("Asia/Phnom_Penh"));

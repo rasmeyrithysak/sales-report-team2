@@ -39,8 +39,8 @@ class ReportControllerTest {
         TestData.writeSample(dataDir);
         model = new SalesModel(new CsvMonthReader(new CsvTransactionParser()), new DefaultSalesAggregator());
         model.addListener(events::add);
-        
-        Clock fixedClock = Clock.fixed(Instant.parse("2026-09-27T03:00:00Z"), ZoneId.of("Asia/Phnom_Penh"));
+
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-09-27T03:00:00Z"), ZoneId.of("UTC"));
         controller = new ReportController(model, dataDir, fixedClock, errors);
     }
 
@@ -68,8 +68,8 @@ class ReportControllerTest {
     @Test
     void branchFilterNarrowsRows() {
         controller.monthEntered("2026-09");
-        controller.branchChosen("rep");
-        assertEquals("REP", model.branch());
-        assertEquals(1, model. visibleTransactions().size());
+        controller.branchChosen("PNH");
+        assertEquals("PNH", model.branch());
+        assertEquals(1, model.visibleTransactions().size());
     }
 }

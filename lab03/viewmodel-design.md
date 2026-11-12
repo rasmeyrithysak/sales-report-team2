@@ -16,3 +16,81 @@
 | 10 | `errors.clearError()` after success | Reset error | ViewModel (`loadError`) |
 | 11 | `Clock clock` field | Time source for the month rule | ViewModel (injected `Clock`) |
 | 12 | `Path dataDir` field and `ErrorDisplay errors` field | Data location / error label | `dataDir`: composition root (`ReportViewerApp`). `errors`: View (label bound to `loadError`) |
+
+
+
+## 2. ViewModel members
+
+| Member | Group | View may write? |
+|--------|-------|-----------------|
+| `month` | input | yes (two-way) |
+| `branchSelected(b)` | input | yes (two-way) |
+| `productFilter` | input | yes (two-way) |
+| `monthChoices` | output | no |
+| `summaries` | output | no |
+| `visibleProducts` | output | no |
+| `loading` | output | no |
+| `progress` | output | no |
+| `status` | output | no |
+| `loadError` | output | no |
+| `monthError` | computed | no |
+| `branchError` | computed | no |
+| `validationMessage` | computed | no |
+| `canGenerate` | computed | no |
+| `totalRevenue` | computed | no |
+| `totalRevenueText` | computed | no |
+| `generateCommand` | command | execute only |
+| `cancelCommand` | command | execute only |
+
+## 3. Class diagram
+
+```mermaid
+classDiagram
+    class ReportView {
+        +root() Parent
+    }
+    class ReportViewModel {
+        +monthProperty() ObjectProperty~YearMonth~
+        +branchSelectedProperty(String) BooleanProperty
+        +productFilterProperty() StringProperty
+        +summaries() ObservableList~BranchSummary~
+        +visibleProducts() ObservableList~ProductTotal~
+        +loadingProperty() ReadOnlyBooleanProperty
+        +canGenerateProperty() ObservableBooleanValue
+        +totalRevenueTextProperty() StringExpression
+        +generateCommand() Command
+        +cancelCommand() Command
+    }
+    class Command {
+        <<interface>>
+        +executableProperty() ObservableBooleanValue
+        +execute()
+    }
+    class DelegateCommand
+    class SummarySource {
+        <<interface>>
+        +load(YearMonth, String) BranchSummary
+    }
+    class BackgroundJobs {
+        <<interface>>
+        +submit(Work, JobListener) JobHandle
+    }
+    class CallerThreadJobs
+    class FxBackgroundJobs
+    class ManualJobs {
+        test double
+    }
+    class BranchSummary
+    class ProductTotal
+
+    ReportView ..> ReportViewModel : binds
+    ReportViewModel --> Command
+    DelegateCommand ..|> Command
+    ReportViewModel --> SummarySource
+    ReportViewModel --> BackgroundJobs
+    CallerThreadJobs ..|> BackgroundJobs
+    FxBackgroundJobs ..|> BackgroundJobs
+    ManualJobs ..|> BackgroundJobs
+    SummarySource ..> BranchSummary
+    BranchSummary --> ProductTotal
+```

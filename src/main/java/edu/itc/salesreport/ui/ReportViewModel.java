@@ -8,6 +8,12 @@ import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Locale;
+import java.util.concurrent.CancellationException;
+import java.util.function.Predicate;
 import java.util.Objects;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -96,14 +102,32 @@ public final class ReportViewModel {
         branchError = Bindings.createStringBinding(() -> "");
         validationMessage = Bindings.createStringBinding(() -> "");
         canGenerate = month.isNotNull().and(loading.not());
-        // TODO Task 2: sum of summaries' revenue, formatted "USD 1,234.50"
-        totalRevenue = Bindings.createObjectBinding(() -> BigDecimal.ZERO);
-        totalRevenueText = Bindings.createStringBinding(() -> "USD 0.00");
-        // TODO Task 2: bind visibleProducts' predicate to productFilter
+               totalRevenue = Bindings.createObjectBinding(
+                () -> summaries.stream()
+                        .map(BranchSummary::revenue)
+                        .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add),
+                summaries);
+        totalRevenueText = Bindings.createStringBinding(() -> {
+            NumberFormat f = NumberFormat.getNumberInstance(Locale.US);
+            f.setMinimumFractionDigits(2);
+            f.setMaximumFractionDigits(2);
+            return "USD " + f.format(totalRevenue.get());
+        }, totalRevenue);
+        visibleProducts.predicateProperty().bind(
+                Bindings.createObjectBinding(this::filterPredicate,
+                        productFilter));
 
         generateCommand = new DelegateCommand(this::generate, canGenerate);
         cancelCommand = new DelegateCommand(this::cancel,
                 loading.getReadOnlyProperty());
+    }
+
+        private Predicate<ProductTotal> filterPredicate() {
+        String q = productFilter.get() == null ? ""
+                : productFilter.get().strip().toLowerCase(Locale.ROOT);
+        return p -> q.isEmpty()
+                || p.productName().toLowerCase(Locale.ROOT).contains(q)
+                || p.sku().toLowerCase(Locale.ROOT).contains(q);
     }
 
     public List<String> selectedBranches() {
@@ -113,17 +137,83 @@ public final class ReportViewModel {
                 .toList();
     }
 
+        /** What the worker hands back: plain data, no properties. */
+    private record Loaded(List<BranchSummary> summaries,
+                          List<ProductTotal> products) { }
+
     private void generate() {
-        // TODO Task 2: snapshot month and selectedBranches(), set loading,
-        // then jobs.submit(sink -> loadAll(...), listener); the listener
-        // fills summaries/products on success and resets loading.
-        // TODO Task 4: progress, cancelled(), failed() -> loadError
+        // snapshot the inputs: the worker never reads a property
+        YearMonth m = month.get();
+        List<String> branches = selectedBranches();
+
+        loading.set(true);
+        progress.set(0);
+        loadError.set("");
+        status.set("Loading " + m + "...");
+
+        running = jobs.submit(sink -> loadAll(m, branches, sink),
+                new BackgroundJobs.JobListener<Loaded>() {
+                    @Override
+                    public void progress(double fraction) {
+                        progress.set(fraction);
+                    }
+
+                    @Override
+                    public void succeeded(Loaded value) {
+                        summaries.setAll(value.summaries());
+                        products.setAll(value.products());
+                        status.set("Loaded " + value.summaries().size()
+                                + " branch(es) for " + m + ".");
+                        loading.set(false);
+                    }
+
+                    @Override
+                    public void failed(Throwable error) {
+                        loadError.set(error.getMessage() == null
+                                ? error.toString() : error.getMessage());
+                        status.set("Load failed, previous data kept.");
+                        loading.set(false);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        status.set("Cancelled, previous data kept.");
+                        loading.set(false);
+                    }
+                });
+    }
+
+    /** Runs on the worker: only the snapshot arguments and the source. */
+    private Loaded loadAll(YearMonth m, List<String> branches,
+                           BackgroundJobs.ProgressSink sink) throws Exception {
+        List<BranchSummary> result = new ArrayList<>();
+        Map<String, ProductTotal> merged = new LinkedHashMap<>();
+        for (int i = 0; i < branches.size(); i++) {
+            if (sink.isCancelled()) {
+                throw new CancellationException();
+            }
+            BranchSummary s = source.load(m, branches.get(i));
+            result.add(s);
+            for (ProductTotal p : s.topProducts()) {
+                merged.merge(p.sku(), p, (a, b) -> new ProductTotal(
+                        a.sku(), a.productName(),
+                        a.revenue().add(b.revenue()),
+                        a.quantity() + b.quantity()));
+            }
+            sink.update(i + 1, branches.size());
+        }
+        List<ProductTotal> top = merged.values().stream()
+                .sorted(Comparator.comparing(ProductTotal::revenue).reversed())
+                .toList();
+        return new Loaded(result, top);
     }
 
     private void cancel() {
-        // TODO Task 4: cancel the running job, if any
+        if (running != null) {
+            running.cancel();
+        }
     }
-
+    
     // ---- accessors: read-only types for everything the view must not set
     public ObjectProperty<YearMonth> monthProperty() { return month; }
     public BooleanProperty branchSelectedProperty(String branch) {

@@ -1,6 +1,6 @@
 # Lab-03 · MVVM refactor of the Angkor Mart report viewer
 
-Team repository: `sales-report-team2`, branch `lab-03`. Pull request: TODO (paste the link).
+Team repository: `sales-report-team2`, branch `lab-03`. Pull request: https://github.com/rasmeyrithysak/sales-report-team2/pull/1
 
 ## (a) Files of this lab
 

@@ -37,6 +37,7 @@ public class ReportViewerApp extends Application {
         stage.setScene(new Scene(new ReportView(vm).root(), 960, 600));
         stage.setTitle("Angkor Mart · Monthly report (MVVM)");
         stage.show();
+        DashboardWindow.open(vm);
     }
 
     @Override

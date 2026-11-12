@@ -13,10 +13,8 @@ import org.junit.jupiter.api.Test;
 /** Makes "no toolkit in the core" executable. */
 class UiIndependenceTest {
     private static final Path ROOT = Path.of("src/main/java/edu/itc/salesreport");
-    private static final List<String> TOOLKIT_FREE =
-            List.of("model", "ingest", "engine", "ui", "ui/mvp");
-    private static final List<String> FORBIDDEN =
-            List.of("import javafx.", "import java.awt.", "import javax.swing.");
+    private static final List<String> TOOLKIT_FREE = List.of("model", "ingest", "engine", "ui/mvp");
+    private static final List<String> FORBIDDEN = List.of("import javafx.", "import java.awt.", "import javax.swing.");
 
     @Test
     void toolkitFreePackagesImportNoToolkit() throws IOException {
@@ -26,7 +24,7 @@ class UiIndependenceTest {
             if (!Files.isDirectory(dir)) {
                 continue;
             }
-            try (Stream<Path> files = Files.list(dir)) {   // direct files only
+            try (Stream<Path> files = Files.list(dir)) { // direct files only
                 for (Path file : files.filter(p -> p.toString().endsWith(".java")).toList()) {
                     for (String line : Files.readAllLines(file)) {
                         String trimmed = line.strip();

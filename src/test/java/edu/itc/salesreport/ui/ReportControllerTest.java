@@ -23,8 +23,16 @@ class ReportControllerTest {
 
     static final class FakeErrors implements ErrorDisplay {
         final List<String> shown = new ArrayList<>();
-        @Override public void showError(String message) { shown.add(message); }
-        @Override public void clearError() { shown.add("<cleared>"); }
+
+        @Override
+        public void showError(String message) {
+            shown.add(message);
+        }
+
+        @Override
+        public void clearError() {
+            shown.add("<cleared>");
+        }
     }
 
     @TempDir

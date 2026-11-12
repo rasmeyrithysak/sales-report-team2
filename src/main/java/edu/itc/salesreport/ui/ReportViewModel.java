@@ -53,30 +53,19 @@ public final class ReportViewModel {
     private final Clock clock;
 
     // ---- input state: two-way bound by the view
-    private final ObjectProperty<YearMonth> month =
-            new SimpleObjectProperty<>(this, "month");
-    private final Map<String, BooleanProperty> branchSelected =
-            new LinkedHashMap<>();
-    private final StringProperty productFilter =
-            new SimpleStringProperty(this, "productFilter", "");
+    private final ObjectProperty<YearMonth> month = new SimpleObjectProperty<>(this, "month");
+    private final Map<String, BooleanProperty> branchSelected = new LinkedHashMap<>();
+    private final StringProperty productFilter = new SimpleStringProperty(this, "productFilter", "");
 
     // ---- output state: one-way bound by the view
-    private final ObservableList<YearMonth> monthChoices =
-            FXCollections.observableArrayList();
-    private final ObservableList<BranchSummary> summaries =
-            FXCollections.observableArrayList();
-    private final ObservableList<ProductTotal> products =
-            FXCollections.observableArrayList();
-    private final FilteredList<ProductTotal> visibleProducts =
-            new FilteredList<>(products);
-    private final ReadOnlyBooleanWrapper loading =
-            new ReadOnlyBooleanWrapper(this, "loading", false);
-    private final ReadOnlyDoubleWrapper progress =
-            new ReadOnlyDoubleWrapper(this, "progress", 0);
-    private final ReadOnlyStringWrapper status =
-            new ReadOnlyStringWrapper(this, "status", "Choose a month.");
-    private final ReadOnlyStringWrapper loadError =
-            new ReadOnlyStringWrapper(this, "loadError", "");
+    private final ObservableList<YearMonth> monthChoices = FXCollections.observableArrayList();
+    private final ObservableList<BranchSummary> summaries = FXCollections.observableArrayList();
+    private final ObservableList<ProductTotal> products = FXCollections.observableArrayList();
+    private final FilteredList<ProductTotal> visibleProducts = new FilteredList<>(products);
+    private final ReadOnlyBooleanWrapper loading = new ReadOnlyBooleanWrapper(this, "loading", false);
+    private final ReadOnlyDoubleWrapper progress = new ReadOnlyDoubleWrapper(this, "progress", 0);
+    private final ReadOnlyStringWrapper status = new ReadOnlyStringWrapper(this, "status", "Choose a month.");
+    private final ReadOnlyStringWrapper loadError = new ReadOnlyStringWrapper(this, "loadError", "");
 
     // ---- computed state (Task 3 replaces the placeholders)
     private final StringBinding monthError;
@@ -91,18 +80,18 @@ public final class ReportViewModel {
     private BackgroundJobs.JobHandle running;
 
     private String checkMonth(YearMonth m) {
-    if (m == null) {
-        return "Choose a month.";
+        if (m == null) {
+            return "Choose a month.";
+        }
+        YearMonth currentMonth = YearMonth.now(clock);
+        if (m.isAfter(currentMonth)) {
+            return "Month " + m + " is in the future.";
+        }
+        return "";
     }
-    YearMonth currentMonth = YearMonth.now(clock);
-    if (m.isAfter(currentMonth)) {
-        return "Month " + m + " is in the future.";
-    }
-    return "";
-}
 
     public ReportViewModel(SummarySource source, BackgroundJobs jobs,
-                           Clock clock) {
+            Clock clock) {
         this.source = Objects.requireNonNull(source);
         this.jobs = Objects.requireNonNull(jobs);
         this.clock = Objects.requireNonNull(clock);
@@ -117,7 +106,7 @@ public final class ReportViewModel {
         Observable[] flags = branchSelected.values().toArray(Observable[]::new);
 
         monthError = Bindings.createStringBinding(
-            () -> checkMonth(month.get()), month);
+                () -> checkMonth(month.get()), month);
 
         branchError = Bindings.createStringBinding(
                 () -> selectedBranches().isEmpty() ? "Select at least one branch." : "",
@@ -131,7 +120,7 @@ public final class ReportViewModel {
 
         BooleanBinding valid = monthError.isEmpty().and(branchError.isEmpty());
         canGenerate = valid.and(loading.not());
-               totalRevenue = Bindings.createObjectBinding(
+        totalRevenue = Bindings.createObjectBinding(
                 () -> summaries.stream()
                         .map(BranchSummary::revenue)
                         .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add),
@@ -151,7 +140,7 @@ public final class ReportViewModel {
                 loading.getReadOnlyProperty());
     }
 
-        private Predicate<ProductTotal> filterPredicate() {
+    private Predicate<ProductTotal> filterPredicate() {
         String q = productFilter.get() == null ? ""
                 : productFilter.get().strip().toLowerCase(Locale.ROOT);
         return p -> q.isEmpty()
@@ -166,9 +155,10 @@ public final class ReportViewModel {
                 .toList();
     }
 
-        /** What the worker hands back: plain data, no properties. */
+    /** What the worker hands back: plain data, no properties. */
     private record Loaded(List<BranchSummary> summaries,
-                          List<ProductTotal> products) { }
+            List<ProductTotal> products) {
+    }
 
     private void generate() {
         // snapshot the inputs: the worker never reads a property
@@ -199,7 +189,8 @@ public final class ReportViewModel {
                     @Override
                     public void failed(Throwable error) {
                         loadError.set(error.getMessage() == null
-                                ? error.toString() : error.getMessage());
+                                ? error.toString()
+                                : error.getMessage());
                         status.set("Load failed, previous data kept.");
                         loading.set(false);
                     }
@@ -214,7 +205,7 @@ public final class ReportViewModel {
 
     /** Runs on the worker: only the snapshot arguments and the source. */
     private Loaded loadAll(YearMonth m, List<String> branches,
-                           BackgroundJobs.ProgressSink sink) throws Exception {
+            BackgroundJobs.ProgressSink sink) throws Exception {
         List<BranchSummary> result = new ArrayList<>();
         Map<String, ProductTotal> merged = new LinkedHashMap<>();
         for (int i = 0; i < branches.size(); i++) {
@@ -242,45 +233,77 @@ public final class ReportViewModel {
             running.cancel();
         }
     }
-    
+
     // ---- accessors: read-only types for everything the view must not set
-    public ObjectProperty<YearMonth> monthProperty() { return month; }
+    public ObjectProperty<YearMonth> monthProperty() {
+        return month;
+    }
+
     public BooleanProperty branchSelectedProperty(String branch) {
         return Objects.requireNonNull(branchSelected.get(branch), branch);
     }
-    public StringProperty productFilterProperty() { return productFilter; }
+
+    public StringProperty productFilterProperty() {
+        return productFilter;
+    }
+
     public ObservableList<YearMonth> monthChoices() {
         return FXCollections.unmodifiableObservableList(monthChoices);
     }
+
     public ObservableList<BranchSummary> summaries() {
         return FXCollections.unmodifiableObservableList(summaries);
     }
+
     public ObservableList<ProductTotal> visibleProducts() {
         return visibleProducts;
     }
+
     public ReadOnlyBooleanProperty loadingProperty() {
         return loading.getReadOnlyProperty();
     }
+
     public ReadOnlyDoubleProperty progressProperty() {
         return progress.getReadOnlyProperty();
     }
+
     public ReadOnlyStringProperty statusProperty() {
         return status.getReadOnlyProperty();
     }
+
     public ReadOnlyStringProperty loadErrorProperty() {
         return loadError.getReadOnlyProperty();
     }
-    public StringExpression monthErrorProperty() { return monthError; }
-    public StringExpression branchErrorProperty() { return branchError; }
+
+    public StringExpression monthErrorProperty() {
+        return monthError;
+    }
+
+    public StringExpression branchErrorProperty() {
+        return branchError;
+    }
+
     public StringExpression validationMessageProperty() {
         return validationMessage;
     }
-    public ObservableBooleanValue canGenerateProperty() { return canGenerate; }
+
+    public ObservableBooleanValue canGenerateProperty() {
+        return canGenerate;
+    }
+
     public ObservableObjectValue<BigDecimal> totalRevenueProperty() {
         return totalRevenue;
     }
+
     public StringExpression totalRevenueTextProperty() {
         return totalRevenueText;
     }
-    public Command generateCommand() { return generateCommand; }
-    public Command cancelCommand() { return cancelCommand; }}
+
+    public Command generateCommand() {
+        return generateCommand;
+    }
+
+    public Command cancelCommand() {
+        return cancelCommand;
+    }
+}

@@ -94,3 +94,34 @@ classDiagram
     SummarySource ..> BranchSummary
     BranchSummary --> ProductTotal
 ```
+## 4. Screen State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Incomplete: Month or branches empty
+    
+    Incomplete --> Invalid: Future month or error present
+    Incomplete --> Ready: Month valid & >= 1 branch selected
+    
+    Invalid --> Incomplete: Clear inputs
+    Invalid --> Ready: Fix validation errors
+    
+    Ready --> Loading: Click Generate (canGenerate=true)
+    
+    Loading --> Loaded: Job succeeds
+    Loading --> Failed: Job throws exception
+    Loading --> Incomplete: Job cancelled (keeps old data)
+    
+    Loaded --> Ready: Change input / filters
+    Loaded --> Loading: Click Generate again
+    
+    Failed --> Ready: Fix input / retry
+    Failed --> Loading: Click Generate again
+```
+### State Property Values Reference
+* **Incomplete**: `monthError` or `branchError` active (e.g., `"Choose a month."`), `canGenerate = false`, `loading = false`.
+* **Invalid**: `monthError` active (e.g., future month error), `canGenerate = false`, `loading = false`.
+* **Ready**: `monthError` & `branchError` both empty (`""`), `canGenerate = true`, `loading = false`.
+* **Loading**: `loading = true`, `canGenerate = false`, `cancelCommand` executable.
+* **Loaded**: `loading = false`, data tables populated successfully, previous errors cleared.
+* **Failed**: `loading = false`, `loadError` populated with exception message, status set to `"Load failed, previous data kept."`, previous data preserved.

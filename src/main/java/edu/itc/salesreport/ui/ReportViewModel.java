@@ -14,6 +14,8 @@ import java.util.Comparator;
 import java.util.Locale;
 import java.util.concurrent.CancellationException;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.Objects;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -37,6 +39,9 @@ import javafx.beans.value.ObservableObjectValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javafx.beans.Observable;
 
 /** Task 1 skeleton: state, commands and ports. javafx.base only. */
 public final class ReportViewModel {
@@ -85,6 +90,17 @@ public final class ReportViewModel {
     private final Command cancelCommand;
     private BackgroundJobs.JobHandle running;
 
+    private String checkMonth(YearMonth m) {
+    if (m == null) {
+        return "Choose a month.";
+    }
+    YearMonth currentMonth = YearMonth.now(clock);
+    if (m.isAfter(currentMonth)) {
+        return "Month " + m + " is in the future.";
+    }
+    return "";
+}
+
     public ReportViewModel(SummarySource source, BackgroundJobs jobs,
                            Clock clock) {
         this.source = Objects.requireNonNull(source);
@@ -97,11 +113,24 @@ public final class ReportViewModel {
         for (String b : BRANCHES) {
             branchSelected.put(b, new SimpleBooleanProperty(this, b, true));
         }
-        // TODO Task 3: real rules (future month, empty branch selection)
-        monthError = Bindings.createStringBinding(() -> "", month);
-        branchError = Bindings.createStringBinding(() -> "");
-        validationMessage = Bindings.createStringBinding(() -> "");
-        canGenerate = month.isNotNull().and(loading.not());
+        // Task 3: Real validation rules
+        Observable[] flags = branchSelected.values().toArray(Observable[]::new);
+
+        monthError = Bindings.createStringBinding(
+            () -> checkMonth(month.get()), month);
+
+        branchError = Bindings.createStringBinding(
+                () -> selectedBranches().isEmpty() ? "Select at least one branch." : "",
+                flags);
+
+        validationMessage = Bindings.createStringBinding(
+                () -> Stream.of(monthError.get(), branchError.get())
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.joining(" ")),
+                monthError, branchError);
+
+        BooleanBinding valid = monthError.isEmpty().and(branchError.isEmpty());
+        canGenerate = valid.and(loading.not());
                totalRevenue = Bindings.createObjectBinding(
                 () -> summaries.stream()
                         .map(BranchSummary::revenue)
